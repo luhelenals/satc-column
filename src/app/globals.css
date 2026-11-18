@@ -1,26 +1,143 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --bg-pink: #fff0f6;
+  --window-border: #d68fb0;
+  --header-grad-start: #ff9ec7;
+  --header-grad-end: #ffd6e8;
+  --ink-dark: #2b1d26;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-pink);
+  background-image: radial-gradient(#f3b8d4 1px, transparent 1px),
+    radial-gradient(#f3b8d4 1px, #fff0f6 1px);
+  background-size: 24px 24px;
+  background-position: 0 0, 12px 12px;
+  color: var(--ink-dark);
+  font-family: 'Verdana', 'Tahoma', sans-serif;
+  font-size: 13px;
+}
+
+/* Classic 2000s Boxed Window */
+.y2k-window {
+  background: #ffffff;
+  border: 2px solid #c97da3;
+  box-shadow: 4px 4px 0px rgba(201, 125, 163, 0.35);
+}
+
+.y2k-titlebar {
+  background: linear-gradient(90deg, #ff85b8 0%, #ffc2dc 60%, #ffe6f1 100%);
+  border-bottom: 2px solid #c97da3;
+  padding: 5px 10px;
+  font-family: 'Tahoma', sans-serif;
+  font-weight: bold;
+  font-size: 12px;
+  color: #4a1530;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Classic 2000s Beveled Button */
+.y2k-btn {
+  background: linear-gradient(180deg, #ffffff 0%, #f5d5e5 100%);
+  border-top: 2px solid #ffffff;
+  border-left: 2px solid #ffffff;
+  border-right: 2px solid #a85b82;
+  border-bottom: 2px solid #a85b82;
+  padding: 4px 12px;
+  font-family: 'Tahoma', sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  color: #4a1530;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.05s ease;
+}
+
+.y2k-btn:active {
+  border-top: 2px solid #a85b82;
+  border-left: 2px solid #a85b82;
+  border-right: 2px solid #ffffff;
+  border-bottom: 2px solid #ffffff;
+  transform: translate(1px, 1px);
+}
+
+.y2k-btn-pink {
+  background: linear-gradient(180deg, #ff7eb3 0%, #e04888 100%);
+  color: #ffffff;
+  text-shadow: 1px 1px 0px #9c2457;
+}
+
+/* Editorial Column Typography */
+.column-prose {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 16px;
+  line-height: 1.75;
+  color: #1f161b;
+}
+
+.column-prose h1 {
+  font-size: 1.75rem;
+  font-weight: bold;
+  margin: 1.25rem 0 0.75rem;
+  color: #9e225c;
+}
+
+.column-prose h2 {
+  font-size: 1.35rem;
+  font-weight: bold;
+  margin: 1.15rem 0 0.6rem;
+  color: #b52b6b;
+  border-bottom: 1px dashed #e5a3c3;
+  padding-bottom: 3px;
+}
+
+.column-prose h3 {
+  font-size: 1.15rem;
+  font-weight: bold;
+  margin: 1rem 0 0.5rem;
+}
+
+.column-prose p {
+  margin-bottom: 1rem;
+}
+
+.column-prose ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.column-prose ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.column-prose blockquote {
+  border-left: 3px solid #ff66a3;
+  background: #fff5f9;
+  padding: 0.75rem 1rem;
+  font-style: italic;
+  margin: 1rem 0;
+  color: #5c233f;
+}
+
+.column-prose img {
+  max-width: 100%;
+  height: auto;
+  border: 2px solid #d68fb0;
+  padding: 4px;
+  background: #fff;
+  margin: 1.25rem auto;
+  display: block;
+}
+
+.column-prose a {
+  color: #0033cc;
+  text-decoration: underline;
 }
