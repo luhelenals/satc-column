@@ -13,21 +13,21 @@ interface StickerItem {
 const STICKERS: StickerItem[] = [
   {
     id: 'top-left',
-    src: '/stickers/sticker-kiss.png',
+    src: '/stickers/star-pillow-sticker.png',
     fallbackEmoji: '💋',
     label: 'made by a girl',
     className: '-top-5 -left-4 -rotate-12',
   },
   {
     id: 'top-right',
-    src: '/stickers/sticker-heel.png',
+    src: '/stickers/star-pillow-sticker.png',
     fallbackEmoji: '👠',
     label: 'xoxo',
     className: 'top-24 -right-5 rotate-12',
   },
   {
     id: 'bottom-left',
-    src: '/stickers/sticker-laptop.png',
+    src: '/stickers/dinosaur-sticker.png',
     fallbackEmoji: '💻✨',
     label: 'columnist',
     className: '-bottom-5 left-6 -rotate-6',

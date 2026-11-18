@@ -20,7 +20,7 @@ export default function RootLayout({
       <body className="min-h-screen py-6 px-3 sm:px-6">
         <div className="max-w-3xl mx-auto relative">
           {/* Overlapping Stickers Layer */}
-          <StickerOverlay />
+          {/*<StickerOverlay />*/}
 
           {/* Top 2000s Portal Header */}
           <header className="y2k-window mb-5">
