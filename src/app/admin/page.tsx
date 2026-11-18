@@ -1,0 +1,454 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../../lib/supabase';
+import { Post, PostStatus } from '../../types/post';
+import RichTextEditor from '../../components/RichTextEditor';
+import { LogOut, Plus, Edit3, Archive, RotateCcw, Send, Save } from 'lucide-react';
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)+/g, '');
+}
+
+export default function AdminPage() {
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+
+  // Login Form
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  // Posts List & Filter
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [filterTab, setFilterTab] = useState<'all' | PostStatus>('all');
+
+  // Editor State
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [title, setTitle] = useState('');
+  const [summary, setSummary] = useState('');
+  const [tagsInput, setTagsInput] = useState('');
+  const [coverImage, setCoverImage] = useState('');
+  const [content, setContent] = useState('<p>I couldn&apos;t help but wonder...</p>');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSessionEmail(session?.user?.email ?? null);
+      setLoadingAuth(false);
+      if (session) fetchAllPosts();
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSessionEmail(session?.user?.email ?? null);
+      if (session) fetchAllPosts();
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const fetchAllPosts = async () => {
+    const { data } = await supabase
+      .from('posts')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (data) setPosts(data);
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) setAuthError(error.message);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setSessionEmail(null);
+  };
+
+  const startNewPost = () => {
+    setEditingId(null);
+    setTitle('');
+    setSummary('');
+    setTagsInput('');
+    setCoverImage('');
+    setContent('<p>I couldn&apos;t help but wonder...</p>');
+    setIsEditing(true);
+  };
+
+  const startEditPost = (post: Post) => {
+    setEditingId(post.id);
+    setTitle(post.title);
+    setSummary(post.summary);
+    setTagsInput(post.tags?.join(', ') || '');
+    setCoverImage(post.cover_image || '');
+    setContent(post.content);
+    setIsEditing(true);
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = file.name.split('.').pop();
+    const fileName = `cover-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage
+      .from('column-images')
+      .upload(fileName, file);
+    if (error) {
+      alert('Upload failed: ' + error.message);
+      return;
+    }
+    const { data } = supabase.storage.from('column-images').getPublicUrl(fileName);
+    setCoverImage(data.publicUrl);
+  };
+
+  const savePost = async (targetStatus: PostStatus) => {
+    if (!title.trim() || !summary.trim()) {
+      alert('Please fill in both a Title and a Brief Summary.');
+      return;
+    }
+
+    setSaving(true);
+    const parsedTags = tagsInput
+      .split(',')
+      .map((t) => t.trim().replace(/^#/, ''))
+      .filter(Boolean);
+
+    const payload = {
+      title: title.trim(),
+      summary: summary.trim(),
+      content,
+      cover_image: coverImage || null,
+      tags: parsedTags,
+      status: targetStatus,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (editingId) {
+      const { error } = await supabase
+        .from('posts')
+        .update(payload)
+        .eq('id', editingId);
+      if (error) alert(error.message);
+    } else {
+      const uniqueSlug = `${slugify(title)}-${Date.now().toString().slice(-4)}`;
+      const { error } = await supabase
+        .from('posts')
+        .insert([{ ...payload, slug: uniqueSlug }]);
+      if (error) alert(error.message);
+    }
+
+    setSaving(false);
+    setIsEditing(false);
+    fetchAllPosts();
+  };
+
+  const toggleArchive = async (post: Post) => {
+    const nextStatus: PostStatus =
+      post.status === 'archived' ? 'published' : 'archived';
+    await supabase
+      .from('posts')
+      .update({ status: nextStatus, updated_at: new Date().toISOString() })
+      .eq('id', post.id);
+    fetchAllPosts();
+  };
+
+  if (loadingAuth) {
+    return (
+      <div className="y2k-window p-6 text-center font-mono">
+        Loading security terminal...
+      </div>
+    );
+  }
+
+  /* 1. LOGIN SCREEN */
+  if (!sessionEmail) {
+    return (
+      <div className="y2k-window max-w-md mx-auto">
+        <div className="y2k-titlebar">
+          <span>🔒 admin_login.exe</span>
+        </div>
+        <form onSubmit={handleLogin} className="p-6 space-y-4">
+          <p className="text-xs text-[#5c233f]">
+            Restricted area. Enter your columnist credentials to write, edit, or
+            archive stories.
+          </p>
+
+          {authError && (
+            <div className="bg-red-100 border border-red-400 text-red-700 p-2 text-xs">
+              {authError}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-bold mb-1">Admin Email</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border-2 border-[#c97da3] p-2 bg-white text-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold mb-1">Password</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full border-2 border-[#c97da3] p-2 bg-white text-sm"
+            />
+          </div>
+
+          <button type="submit" className="y2k-btn y2k-btn-pink w-full justify-center py-2">
+            Log In
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  /* 2. EDITOR VIEW */
+  if (isEditing) {
+    return (
+      <div className="y2k-window">
+        <div className="y2k-titlebar">
+          <span>✍️ {editingId ? 'edit_column.doc' : 'new_column.doc'}</span>
+          <button
+            type="button"
+            onClick={() => setIsEditing(false)}
+            className="underline text-[#0033cc] text-[11px]"
+          >
+            Cancel
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div>
+            <label className="block text-xs font-bold mb-1">Column Title *</label>
+            <input
+              type="text"
+              placeholder="e.g., Are Dating Apps Making Us Forget How to Flirt?"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full border-2 border-[#c97da3] p-2 font-serif text-lg bg-white"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold mb-1">
+              Brief Summary (shown in feed &amp; archive) *
+            </label>
+            <textarea
+              rows={2}
+              placeholder="A punchy 1-2 sentence hook summarizing this week's column..."
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+              className="w-full border-2 border-[#c97da3] p-2 text-sm bg-white"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold mb-1">
+                Tags (comma separated)
+              </label>
+              <input
+                type="text"
+                placeholder="girly, tech, politics, lgbt"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                className="w-full border-2 border-[#c97da3] p-2 text-xs bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold mb-1">
+                Optional Cover Image
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleCoverUpload}
+                className="text-xs"
+              />
+              {coverImage && (
+                <div className="mt-1 flex items-center gap-2 text-[11px] text-green-700">
+                  <span>Cover attached!</span>
+                  <button
+                    type="button"
+                    onClick={() => setCoverImage('')}
+                    className="underline text-red-600"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold mb-1">Column Body</label>
+            <RichTextEditor content={content} onChange={setContent} />
+          </div>
+
+          {/* Draft vs Publish Actions */}
+          <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => savePost('draft')}
+              className="y2k-btn"
+            >
+              <Save className="w-4 h-4" />
+              <span>{saving ? 'Saving...' : 'Save as Draft'}</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => savePost('published')}
+              className="y2k-btn y2k-btn-pink"
+            >
+              <Send className="w-4 h-4" />
+              <span>{saving ? 'Publishing...' : 'Publish Column'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  /* 3. ADMIN DASHBOARD (MANAGE POSTS, DRAFTS & ARCHIVED) */
+  const filteredPosts =
+    filterTab === 'all' ? posts : posts.filter((p) => p.status === filterTab);
+
+  return (
+    <div className="y2k-window">
+      <div className="y2k-titlebar">
+        <span>★ columnist_desk // logged in as {sessionEmail}</span>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex items-center gap-1 text-[11px] underline text-[#4a1530]"
+        >
+          <LogOut className="w-3 h-3" /> Logout
+        </button>
+      </div>
+
+      <div className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div className="flex flex-wrap gap-1.5">
+            {(['all', 'published', 'draft', 'archived'] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setFilterTab(tab)}
+                className={`y2k-btn capitalize ${
+                  filterTab === tab ? '!bg-[#ff9ec7]' : ''
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={startNewPost}
+            className="y2k-btn y2k-btn-pink"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Write New Column</span>
+          </button>
+        </div>
+
+        <div className="divide-y divide-dashed divide-[#d68fb0]">
+          {filteredPosts.map((post) => (
+            <div
+              key={post.id}
+              className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+            >
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span
+                    className={`text-[10px] font-mono uppercase px-1.5 py-0.5 border ${
+                      post.status === 'published'
+                        ? 'bg-green-100 border-green-400 text-green-800'
+                        : post.status === 'draft'
+                        ? 'bg-yellow-100 border-yellow-400 text-yellow-800'
+                        : 'bg-gray-200 border-gray-400 text-gray-700'
+                    }`}
+                  >
+                    {post.status}
+                  </span>
+                  <span className="text-[11px] font-mono text-gray-500">
+                    {new Date(post.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="font-serif font-bold text-base">{post.title}</div>
+                <div className="text-xs text-gray-600 line-clamp-1">
+                  {post.summary}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => startEditPost(post)}
+                  className="y2k-btn"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Edit</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => toggleArchive(post)}
+                  className="y2k-btn"
+                  title={
+                    post.status === 'archived'
+                      ? 'Restore to Published'
+                      : 'Archive Story (hide without deleting)'
+                  }
+                >
+                  {post.status === 'archived' ? (
+                    <>
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Unarchive</span>
+                    </>
+                  ) : (
+                    <>
+                      <Archive className="w-3.5 h-3.5" />
+                      <span>Archive</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {filteredPosts.length === 0 && (
+            <p className="text-center py-6 text-xs text-gray-500 font-mono">
+              No stories found under &quot;{filterTab}&quot;.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

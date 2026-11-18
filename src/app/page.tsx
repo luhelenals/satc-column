@@ -1,69 +1,97 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { supabase } from '../lib/supabase';
+import { Post } from '../types/post';
+import BioBox from '../components/BioBox';
+import ShareButton from '../components/ShareButton';
 
-export default function Home() {
+export const revalidate = 0; // Always fetch freshest published story
+
+export default async function HomePage() {
+  const { data: posts } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('status', 'published')
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  const latestPost: Post | undefined = posts?.[0];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div>
+      {/* 1. Columnist Bio & Photo */}
+      <BioBox />
+
+      {/* 2. Latest Story Window */}
+      <section className="y2k-window">
+        <div className="y2k-titlebar">
+          <span>★ latest_column.doc</span>
+          <Link href="/archive" className="underline text-[#0033cc] text-[11px]">
+            See All Stories &raquo;
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
+
+        {latestPost ? (
+          <article className="p-5 sm:p-7">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-[#8a1c50] mb-2">
+              <span>
+                Published:{' '}
+                {new Date(latestPost.created_at).toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </span>
+              <ShareButton
+                path={`/post/${latestPost.slug}`}
+                label="Share Story"
+              />
+            </div>
+
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#2b1d26] mb-3">
+              {latestPost.title}
+            </h2>
+
+            {/* Brief Summary Callout */}
+            <div className="bg-[#fff5fa] border-l-4 border-[#ff7eb3] p-3 mb-5 text-[13px] italic text-[#5c233f]">
+              {latestPost.summary}
+            </div>
+
+            {latestPost.cover_image && (
+              <img
+                src={latestPost.cover_image}
+                alt={latestPost.title}
+                className="w-full max-h-96 object-cover border-2 border-[#d68fb0] p-1 bg-white mb-6"
+              />
+            )}
+
+            {/* Full Formatted Column Body */}
+            <div
+              className="column-prose"
+              dangerouslySetInnerHTML={{ __html: latestPost.content }}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+            {/* Bottom Actions */}
+            <div className="mt-8 pt-4 border-t border-dashed border-[#d68fb0] flex flex-wrap items-center justify-between gap-3">
+              <ShareButton
+                path={`/post/${latestPost.slug}`}
+                label="Copy Story Link"
+              />
+              <Link href="/archive" className="y2k-btn y2k-btn-pink">
+                Read All Previous Columns &rarr;
+              </Link>
+            </div>
+          </article>
+        ) : (
+          <div className="p-8 text-center">
+            <p className="font-serif text-lg text-[#6b2146] mb-4">
+              No columns published yet! Log in to write your first piece.
+            </p>
+            <Link href="/admin" className="y2k-btn y2k-btn-pink">
+              Go to Admin Writer
+            </Link>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
