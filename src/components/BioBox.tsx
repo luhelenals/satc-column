@@ -1,14 +1,34 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+
+const STATUS_OPTIONS = [
+  'pensando... 💭',
+  'escrevendo... ✍️',
+  'dormindo... 💤',
+  'trabalhando... 💼',
+  'estudando... 📝',
+  'por aí... 🚶‍♀️',
+  'codando... 💻',
+  'jogando... 🎮',
+  'assistindo... 📺',
+  'sei lá... 🤷‍♀️',
+  'lendo... 📖',
+];
 
 export default function BioBox() {
   const [imgError, setImgError] = useState(false);
+  const [status, setStatus] = useState(STATUS_OPTIONS[0]);
+
+  useEffect(() => {
+    const randomIndex = Math.floor(Math.random() * STATUS_OPTIONS.length);
+    setStatus(STATUS_OPTIONS[randomIndex]);
+  }, []);
 
   return (
     <aside className="y2k-window mb-6 relative">
       <div className="y2k-titlebar">
-        <span>★ about the columnist // welcome.exe</span>
+        <span>★ sobre a colunista // welcome.exe</span>
         <div className="flex gap-1">
           <span className="w-3 h-3 bg-white border border-[#a85b82] inline-block text-[9px] leading-none text-center">
             _
@@ -37,27 +57,25 @@ export default function BioBox() {
               </div>
             )}
           </div>
-          <div className="mt-1.5 text-center text-[10px] font-mono text-[#9e225c] bg-[#ffe6f2] border border-[#e3a8c5] py-0.5">
-            status: typing... 🍸
+          <div className="mt-1.5 text-center text-[10px] font-mono text-[#9e225c] bg-[#ffe6f2] border border-[#e3a8c5] py-0.5 px-1">
+            status: {status}
           </div>
         </div>
 
         {/* Bio Text */}
         <div className="flex-1 text-center sm:text-left">
           <h2 className="font-serif text-xl font-bold text-[#9e225c] mb-1">
-            Couldn&apos;t help but wonder...
+            And just like that...
           </h2>
           <p className="text-[13px] leading-relaxed text-[#33222b] mb-3">
-            Welcome to my digital corner of the internet. Every week, I sit down
-            with a drink and write candid columns about{' '}
-            <strong>girly subjects, modern romance, politics, LGBT life,</strong>{' '}
-            and <strong>tech</strong>. Think late-night diary entries meets
-            2000s web nostalgia.
+            SOu a Luiza, tenho 20 e poucos anos, sou natural de Volta Redonda no RJ e moro em Curitiba no PR. Sou formada em Ciência da Computação, amante de cultura pop, sapatona e outras coisas mais.
+            Sempre que eu lembro eu sento pra escrever coisinhas sobre a minha vida aqui. Isso pode ir de {' '}
+            filmes e pensamentos bobos a política e tecnologia. Essa coluna é inspirada na coluna da Carrie Bradshaw em Sex and the City (tirando a parte dos homens). <br />
           </p>
 
-          {/* Topic Tags (Inspired by early YouTube / Neocities tags) */}
+          {/* Topic Tags */}
           <div className="flex flex-wrap justify-center sm:justify-start gap-1.5 text-[11px]">
-            {['#girly-talk', '#politics', '#lgbt', '#tech', '#dating', '#city-life'].map(
+            {['#girly-talk', '#politics', '#lgbt', '#tech', '#life'].map(
               (tag) => (
                 <span
                   key={tag}

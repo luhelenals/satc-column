@@ -28,11 +28,11 @@ export default function RootLayout({
               <div>
                 <Link href="/" className="inline-block group">
                   <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[#4a1530] drop-shadow-[1px_1px_0px_#ffffff]">
-                    The Weekly Column
+                    Aba anônima (na verdade não)
                   </h1>
                 </Link>
                 <p className="text-xs font-mono text-[#6b2146] mt-1">
-                  ★ broadcast yourself // girly thoughts, politics, lgbt & tech
+                  ★ pensamentos de uma garota sobre tudo e sobre nada // weekly column
                 </p>
               </div>
 
