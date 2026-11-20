@@ -68,7 +68,7 @@ export default function BioBox() {
             And just like that...
           </h2>
           <p className="text-[13px] leading-relaxed text-[#33222b] mb-3">
-            SOu a Luiza, tenho 20 e poucos anos, sou natural de Volta Redonda no RJ e moro em Curitiba no PR. Sou formada em Ciência da Computação, amante de cultura pop, sapatona e outras coisas mais.
+            Sou a Luiza, tenho 20 e poucos anos, sou natural de Volta Redonda no RJ e moro em Curitiba no PR. Sou formada em Ciência da Computação, amante de cultura pop, sapatona e outras coisas mais.
             Sempre que eu lembro eu sento pra escrever coisinhas sobre a minha vida aqui. Isso pode ir de {' '}
             filmes e pensamentos bobos a política e tecnologia. Essa coluna é inspirada na coluna da Carrie Bradshaw em Sex and the City (tirando a parte dos homens). <br />
           </p>
