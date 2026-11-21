@@ -3,6 +3,7 @@ import Link from 'next/link';
 import './globals.css';
 import StickerOverlay from '../components/StickerOverlay';
 import ShareButton from '../components/ShareButton';
+import GuestbookCanvas from '../components/GuestbookCanvas';
 
 export const metadata: Metadata = {
   title: 'Sex, Tech & The City | Weekly Column',
@@ -18,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen py-6 px-3 sm:px-6">
-        <div className="max-w-3xl mx-auto relative">
+        <div className="max-w-5xl mx-auto relative">
           {/* Overlapping Stickers Layer */}
           {/*<StickerOverlay />*/}
 
@@ -28,11 +29,11 @@ export default function RootLayout({
               <div>
                 <Link href="/" className="inline-block group">
                   <h1 className="font-serif text-3xl sm:text-4xl font-bold tracking-tight text-[#4a1530] drop-shadow-[1px_1px_0px_#ffffff]">
-                    Aba anônima (na verdade não)
+                    The Weekly Column
                   </h1>
                 </Link>
                 <p className="text-xs font-mono text-[#6b2146] mt-1">
-                  ★ pensamentos de uma garota sobre tudo e sobre nada // weekly column
+                  ★ broadcast yourself // girly thoughts, politics, lgbt & tech
                 </p>
               </div>
 
@@ -61,8 +62,11 @@ export default function RootLayout({
             </nav>
           </header>
 
-          {/* Main Content Area */}
-          <main>{children}</main>
+          {/* Layout em 2 Colunas: Conteúdo Principal (Esquerda) + Paint Guestbook (Direita) */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_290px] gap-5 items-start">
+            <main className="min-w-0">{children}</main>
+            <GuestbookCanvas />
+          </div>
 
           {/* 2000s Footer */}
           <footer className="mt-8 text-center text-[11px] font-mono text-[#7a3556] bg-white/80 border border-[#d68fb0] py-3 px-4">
