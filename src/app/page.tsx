@@ -85,8 +85,6 @@ async function LatestStoryContent() {
 export default function HomePage() {
   return (
     <div>
-      <BioBox />
-
       <section className="y2k-window">
         <div className="y2k-titlebar">
           <span>★ latest_column.doc</span>

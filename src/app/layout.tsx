@@ -3,6 +3,8 @@ import Link from 'next/link';
 import './globals.css';
 import StickerOverlay from '../components/StickerOverlay';
 import ShareButton from '../components/ShareButton';
+import BioBox from '../components/BioBox';
+import SpotifyCdWidget from '../components/SpotifyCdWidget';
 import GuestbookCanvas from '../components/GuestbookCanvas';
 
 export const metadata: Metadata = {
@@ -19,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen py-6 px-3 sm:px-6">
-        <div className="max-w-5xl mx-auto relative">
+        <div className="max-w-6xl mx-auto relative">
           {/* Overlapping Stickers Layer */}
           {/*<StickerOverlay />*/}
 
@@ -62,9 +64,18 @@ export default function RootLayout({
             </nav>
           </header>
 
-          {/* Layout em 2 Colunas: Conteúdo Principal (Esquerda) + Paint Guestbook (Direita) */}
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_290px] gap-5 items-start">
+          {/* Layout em 3 Colunas: Esquerda (Bio + Spotify) | Centro (Coluna) | Direita (Paint) */}
+          <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr_270px] gap-4 items-start">
+            {/* Coluna da Esquerda */}
+            <div className="space-y-4">
+              <BioBox />
+              <SpotifyCdWidget />
+            </div>
+
+            {/* Coluna Principal (Centro) */}
             <main className="min-w-0">{children}</main>
+
+            {/* Coluna da Direita */}
             <GuestbookCanvas />
           </div>
 
