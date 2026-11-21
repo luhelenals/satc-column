@@ -4,7 +4,25 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { Post, PostStatus } from '../../types/post';
 import RichTextEditor from '../../components/RichTextEditor';
-import { LogOut, Plus, Edit3, Archive, RotateCcw, Send, Save } from 'lucide-react';
+import {
+  LogOut,
+  Plus,
+  Edit3,
+  Archive,
+  RotateCcw,
+  Send,
+  Save,
+  Sparkles,
+  PenLine,
+} from 'lucide-react';
+
+interface ColumnIdea {
+  title: string;
+  summary: string;
+  promptQuestion: string;
+  culturalHook: string;
+  tags: string[];
+}
 
 function slugify(text: string): string {
   return text
@@ -37,6 +55,11 @@ export default function AdminPage() {
   const [coverImage, setCoverImage] = useState('');
   const [content, setContent] = useState('<p>I couldn&apos;t help but wonder...</p>');
   const [saving, setSaving] = useState(false);
+
+  // AI Brainstorm State
+  const [vibeFilter, setVibeFilter] = useState('');
+  const [ideas, setIdeas] = useState<ColumnIdea[]>([]);
+  const [loadingIdeas, setLoadingIdeas] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -76,6 +99,49 @@ export default function AdminPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setSessionEmail(null);
+  };
+
+  const generateIdeas = async () => {
+    setLoadingIdeas(true);
+    try {
+      const res = await fetch('/api/ideas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vibe: vibeFilter }),
+      });
+
+      const rawText = await res.text();
+      let data;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        throw new Error(
+          `A rota /api/ideas retornou status ${res.status} (verifique se src/app/api/ideas/route.ts existe e reinicie o servidor).`
+        );
+      }
+
+      if (!res.ok) throw new Error(data.error || 'Erro ao buscar ideias');
+      setIdeas(data.ideas || []);
+    } catch (err: unknown) {
+      alert(
+        'Erro ao gerar sugestões: ' +
+          (err instanceof Error ? err.message : 'Erro desconhecido')
+      );
+    } finally {
+      setLoadingIdeas(false);
+    }
+  };
+
+  const useIdeaInEditor = (idea: ColumnIdea) => {
+    setEditingId(null);
+    setTitle(idea.title);
+    setSummary(idea.summary);
+    setTagsInput(idea.tags.join(', '));
+    setCoverImage('');
+    setContent(
+      `<blockquote><strong>Gancho (${idea.culturalHook}):</strong> ${idea.promptQuestion}</blockquote><p>Eu não pude deixar de me perguntar...</p>`
+    );
+    setIsEditing(true);
   };
 
   const startNewPost = () => {
@@ -214,7 +280,10 @@ export default function AdminPage() {
             />
           </div>
 
-          <button type="submit" className="y2k-btn y2k-btn-pink w-full justify-center py-2">
+          <button
+            type="submit"
+            className="y2k-btn y2k-btn-pink w-full justify-center py-2"
+          >
             Log In
           </button>
         </form>
@@ -333,122 +402,210 @@ export default function AdminPage() {
     );
   }
 
-  /* 3. ADMIN DASHBOARD (MANAGE POSTS, DRAFTS & ARCHIVED) */
+  /* 3. ADMIN DASHBOARD + GERADOR DE IDEIAS COM IA */
   const filteredPosts =
     filterTab === 'all' ? posts : posts.filter((p) => p.status === filterTab);
 
   return (
-    <div className="y2k-window">
-      <div className="y2k-titlebar">
-        <span>★ columnist_desk // logged in as {sessionEmail}</span>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="flex items-center gap-1 text-[11px] underline text-[#4a1530]"
-        >
-          <LogOut className="w-3 h-3" /> Logout
-        </button>
-      </div>
+    <div className="space-y-5">
+      {/* Caixa de Brainstorm com Gemini */}
+      <section className="y2k-window">
+        <div className="y2k-titlebar">
+          <span className="flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5" /> brainstorm_ai.exe // inspiração semanal
+          </span>
+          <span className="text-[10px] font-mono">pop • livros • atualidades</span>
+        </div>
 
-      <div className="p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-          <div className="flex flex-wrap gap-1.5">
-            {(['all', 'published', 'draft', 'archived'] as const).map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setFilterTab(tab)}
-                className={`y2k-btn capitalize ${
-                  filterTab === tab ? '!bg-[#ff9ec7]' : ''
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
+        <div className="p-4 bg-[#fff5fa] space-y-3">
+          <p className="text-xs text-[#5c233f]">
+            Sem ideia para a coluna da semana? O Gemini pesquisa lançamentos de
+            música pop, livros em alta e eventos atuais para sugerir ganchos
+            estilo Carrie Bradshaw:
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <input
+              type="text"
+              placeholder="Opcional: tema específico (ex: novo álbum pop, namoro, IA, livros sáficos...)"
+              value={vibeFilter}
+              onChange={(e) => setVibeFilter(e.target.value)}
+              className="flex-1 border-2 border-[#c97da3] bg-white px-2.5 py-1.5 text-xs focus:outline-none"
+            />
+            <button
+              type="button"
+              disabled={loadingIdeas}
+              onClick={generateIdeas}
+              className="y2k-btn y2k-btn-pink shrink-0 justify-center"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>{loadingIdeas ? 'Pesquisando tendências...' : 'Sugerir Pautas'}</span>
+            </button>
           </div>
 
+          {ideas.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+              {ideas.map((idea, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white border border-[#d68fb0] p-3 flex flex-col justify-between shadow-[2px_2px_0px_rgba(201,125,163,0.25)]"
+                >
+                  <div>
+                    <div className="text-[10px] font-mono text-[#9e225c] bg-[#ffe6f2] px-1.5 py-0.5 inline-block mb-1.5 border border-[#e3a8c5]">
+                      📌 {idea.culturalHook}
+                    </div>
+                    <h3 className="font-serif font-bold text-sm text-[#2b1d26] mb-1">
+                      {idea.title}
+                    </h3>
+                    <p className="text-[11px] text-[#4a3540] mb-2 leading-relaxed">
+                      {idea.summary}
+                    </p>
+                    <p className="text-[11px] italic text-[#6b2146] bg-[#fff9fc] border-l-2 border-[#ff7eb3] pl-2 py-1 mb-2">
+                      “{idea.promptQuestion}”
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-dashed border-[#f0c2d8]">
+                    <div className="flex flex-wrap gap-1">
+                      {idea.tags.map((t) => (
+                        <span
+                          key={t}
+                          className="text-[9px] font-mono text-[#8a1c50] bg-[#fff0f7] px-1 border border-[#e3a8c5]"
+                        >
+                          #{t}
+                        </span>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => useIdeaInEditor(idea)}
+                      className="y2k-btn !px-2 !py-1 text-[11px] shrink-0"
+                    >
+                      <PenLine className="w-3 h-3" />
+                      <span>Escrever</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Gerenciador de Posts */}
+      <section className="y2k-window">
+        <div className="y2k-titlebar">
+          <span>★ columnist_desk // logged in as {sessionEmail}</span>
           <button
             type="button"
-            onClick={startNewPost}
-            className="y2k-btn y2k-btn-pink"
+            onClick={handleLogout}
+            className="flex items-center gap-1 text-[11px] underline text-[#4a1530]"
           >
-            <Plus className="w-4 h-4" />
-            <span>Write New Column</span>
+            <LogOut className="w-3 h-3" /> Logout
           </button>
         </div>
 
-        <div className="divide-y divide-dashed divide-[#d68fb0]">
-          {filteredPosts.map((post) => (
-            <div
-              key={post.id}
-              className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-            >
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span
-                    className={`text-[10px] font-mono uppercase px-1.5 py-0.5 border ${
-                      post.status === 'published'
-                        ? 'bg-green-100 border-green-400 text-green-800'
-                        : post.status === 'draft'
-                        ? 'bg-yellow-100 border-yellow-400 text-yellow-800'
-                        : 'bg-gray-200 border-gray-400 text-gray-700'
-                    }`}
-                  >
-                    {post.status}
-                  </span>
-                  <span className="text-[11px] font-mono text-gray-500">
-                    {new Date(post.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="font-serif font-bold text-base">{post.title}</div>
-                <div className="text-xs text-gray-600 line-clamp-1">
-                  {post.summary}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
+        <div className="p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <div className="flex flex-wrap gap-1.5">
+              {(['all', 'published', 'draft', 'archived'] as const).map((tab) => (
                 <button
+                  key={tab}
                   type="button"
-                  onClick={() => startEditPost(post)}
-                  className="y2k-btn"
+                  onClick={() => setFilterTab(tab)}
+                  className={`y2k-btn capitalize ${
+                    filterTab === tab ? '!bg-[#ff9ec7]' : ''
+                  }`}
                 >
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Edit</span>
+                  {tab}
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => toggleArchive(post)}
-                  className="y2k-btn"
-                  title={
-                    post.status === 'archived'
-                      ? 'Restore to Published'
-                      : 'Archive Story (hide without deleting)'
-                  }
-                >
-                  {post.status === 'archived' ? (
-                    <>
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Unarchive</span>
-                    </>
-                  ) : (
-                    <>
-                      <Archive className="w-3.5 h-3.5" />
-                      <span>Archive</span>
-                    </>
-                  )}
-                </button>
-              </div>
+              ))}
             </div>
-          ))}
 
-          {filteredPosts.length === 0 && (
-            <p className="text-center py-6 text-xs text-gray-500 font-mono">
-              No stories found under &quot;{filterTab}&quot;.
-            </p>
-          )}
+            <button
+              type="button"
+              onClick={startNewPost}
+              className="y2k-btn y2k-btn-pink"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Write New Column</span>
+            </button>
+          </div>
+
+          <div className="divide-y divide-dashed divide-[#d68fb0]">
+            {filteredPosts.map((post) => (
+              <div
+                key={post.id}
+                className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              >
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span
+                      className={`text-[10px] font-mono uppercase px-1.5 py-0.5 border ${
+                        post.status === 'published'
+                          ? 'bg-green-100 border-green-400 text-green-800'
+                          : post.status === 'draft'
+                          ? 'bg-yellow-100 border-yellow-400 text-yellow-800'
+                          : 'bg-gray-200 border-gray-400 text-gray-700'
+                      }`}
+                    >
+                      {post.status}
+                    </span>
+                    <span className="text-[11px] font-mono text-gray-500">
+                      {new Date(post.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="font-serif font-bold text-base">{post.title}</div>
+                  <div className="text-xs text-gray-600 line-clamp-1">
+                    {post.summary}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => startEditPost(post)}
+                    className="y2k-btn"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    <span>Edit</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleArchive(post)}
+                    className="y2k-btn"
+                    title={
+                      post.status === 'archived'
+                        ? 'Restore to Published'
+                        : 'Archive Story (hide without deleting)'
+                    }
+                  >
+                    {post.status === 'archived' ? (
+                      <>
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Unarchive</span>
+                      </>
+                    ) : (
+                      <>
+                        <Archive className="w-3.5 h-3.5" />
+                        <span>Archive</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {filteredPosts.length === 0 && (
+              <p className="text-center py-6 text-xs text-gray-500 font-mono">
+                No stories found under &quot;{filterTab}&quot;.
+              </p>
+            )}
+          </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
